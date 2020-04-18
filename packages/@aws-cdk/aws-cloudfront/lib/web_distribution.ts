@@ -712,6 +712,15 @@ export class CloudFrontWebDistribution extends cdk.Construct implements IDistrib
         }
       }
 
+      if (originConfig.originPath) {
+        if (!originConfig.originPath.startsWith("/")) {
+          throw new Error("Origin path cannot start with '/'");
+        }
+        if (originConfig.originPath.endsWith("/")) {
+          throw new Error("Origin path cannot end with '/'");
+        }
+      }
+
       const originProperty: CfnDistribution.OriginProperty = {
         id: originId,
         domainName: originConfig.s3OriginSource
