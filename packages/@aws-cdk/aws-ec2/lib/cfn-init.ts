@@ -100,7 +100,7 @@ export class CloudFormationInit {
     }
 
     // Note: This will not reflect mutations made after attaching.
-    const bindResult = this.bind(attachedResource.stack, attachOptions);
+    const bindResult = this.bind(attachedResource, attachOptions);
     attachedResource.addMetadata(CFN_INIT_METADATA_KEY, bindResult.configData);
 
     // Need to resolve the various tokens from assets in the config,
@@ -150,10 +150,10 @@ export class CloudFormationInit {
     }
   }
 
-  private bind(scope: Construct, options: AttachInitOptions): { configData: any, authData: any, assetHash?: any } {
+  private bind(attachedResource: CfnResource, options: AttachInitOptions): { configData: any, authData: any, assetHash?: any } {
     const nonEmptyConfigs = mapValues(this._configs, c => c.isEmpty() ? undefined : c);
 
-    const configNameToBindResult = mapValues(nonEmptyConfigs, c => c._bind(scope, options));
+    const configNameToBindResult = mapValues(nonEmptyConfigs, c => c._bind(attachedResource, options));
 
     return {
       configData: {
@@ -196,11 +196,11 @@ export class InitConfig {
    * Creates the CloudFormation representation of the Init config and handles any permissions and assets.
    * @internal
    */
-  public _bind(scope: Construct, options: AttachInitOptions): InitElementConfig {
+  public _bind(attachedResource: CfnResource, options: AttachInitOptions): InitElementConfig {
     const bindOptions = {
       instanceRole: options.instanceRole,
       platform: this.initPlatformFromOSType(options.platform),
-      scope,
+      scope: attachedResource.stack,
     };
 
     const packageConfig = this.bindForType(InitElementType.PACKAGE, bindOptions);

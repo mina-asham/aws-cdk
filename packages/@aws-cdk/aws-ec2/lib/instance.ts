@@ -12,6 +12,7 @@ import { ISecurityGroup, SecurityGroup } from './security-group';
 import { UserData } from './user-data';
 import { BlockDevice, synthesizeBlockDeviceMappings } from './volume';
 import { IVpc, Subnet, SubnetSelection } from './vpc';
+import {HupConfig} from "./cfn-hup";
 
 /**
  * Name tag constant
@@ -221,6 +222,8 @@ export interface InstanceProps {
    */
   readonly init?: CloudFormationInit;
 
+  readonly hup?: boolean;
+
   /**
    * Use the given options for applying CloudFormation Init
    *
@@ -377,8 +380,11 @@ export class Instance extends Resource implements IInstance {
     this.instancePublicDnsName = this.instance.attrPublicDnsName;
     this.instancePublicIp = this.instance.attrPublicIp;
 
-    if (props.init) {
-      this.applyCloudFormationInit(props.init, props.initOptions);
+    if (props.init || props.hup) {
+      const init = props.init ?? CloudFormationInit.fromConfigSets({configSets: {}, configs: {}});
+      init.addConfig("CfnHup", new HupConfig());
+
+      this.applyCloudFormationInit(init, props.initOptions);
     }
 
     this.applyUpdatePolicies(props);

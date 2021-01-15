@@ -20,6 +20,8 @@ import { BasicScheduledActionProps, ScheduledAction } from './scheduled-action';
 import { BasicStepScalingPolicyProps, StepScalingPolicy } from './step-scaling-policy';
 import { BaseTargetTrackingProps, PredefinedMetric, TargetTrackingScalingPolicy } from './target-tracking-scaling-policy';
 import { BlockDevice, BlockDeviceVolume, EbsDeviceVolumeType } from './volume';
+import {CloudFormationInit} from "../../aws-ec2/lib";
+import {HupConfig} from "../../aws-ec2/lib/cfn-hup";
 
 /**
  * Name tag constant
@@ -358,6 +360,8 @@ export interface AutoScalingGroupProps extends CommonAutoScalingGroupProps {
    * @default - no CloudFormation init
    */
   readonly init?: ec2.CloudFormationInit;
+
+  readonly hup?: boolean;
 
   /**
    * Use the given options for applying CloudFormation Init
@@ -1039,8 +1043,11 @@ export class AutoScalingGroup extends AutoScalingGroupBase implements
     this.node.defaultChild = this.autoScalingGroup;
 
     this.applyUpdatePolicies(props, { desiredCapacity, minCapacity });
-    if (props.init) {
-      this.applyCloudFormationInit(props.init, props.initOptions);
+    if (props.init || props.hup) {
+      const init = props.init ?? CloudFormationInit.fromConfigSets({configSets: {}, configs: {}});
+      init.addConfig("CfnHup", new HupConfig());
+
+      this.applyCloudFormationInit(init, props.initOptions);
     }
 
     this.spotPrice = props.spotPrice;
